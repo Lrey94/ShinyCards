@@ -6,8 +6,14 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		F056BCD92FA36DA200E50ED4 /* Sticker in Frameworks */ = {isa = PBXBuildFile; productRef = F056BCD82FA36DA200E50ED4 /* Sticker */; };
+		F0B2B2BD2FAB5D8700922B14 /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = F0B2B2BC2FAB5D8700922B14 /* Shaders.metal */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		F056BCC72FA36CE900E50ED4 /* ShinyCard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ShinyCard.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F0B2B2BC2FAB5D8700922B14 /* Shaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -23,6 +29,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F056BCD92FA36DA200E50ED4 /* Sticker in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -32,6 +39,7 @@
 		F056BCBE2FA36CE900E50ED4 = {
 			isa = PBXGroup;
 			children = (
+				F0B2B2BC2FAB5D8700922B14 /* Shaders.metal */,
 				F056BCC92FA36CE900E50ED4 /* ShinyCard */,
 				F056BCC82FA36CE900E50ED4 /* Products */,
 			);
@@ -65,6 +73,7 @@
 			);
 			name = ShinyCard;
 			packageProductDependencies = (
+				F056BCD82FA36DA200E50ED4 /* Sticker */,
 			);
 			productName = ShinyCard;
 			productReference = F056BCC72FA36CE900E50ED4 /* ShinyCard.app */;
@@ -94,6 +103,9 @@
 			);
 			mainGroup = F056BCBE2FA36CE900E50ED4;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				F056BCD72FA36DA200E50ED4 /* XCRemoteSwiftPackageReference "Sticker" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F056BCC82FA36CE900E50ED4 /* Products */;
 			projectDirPath = "";
@@ -119,6 +131,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F0B2B2BD2FAB5D8700922B14 /* Shaders.metal in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -332,6 +345,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		F056BCD72FA36DA200E50ED4 /* XCRemoteSwiftPackageReference "Sticker" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/bpisano/Sticker";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.4.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F056BCD82FA36DA200E50ED4 /* Sticker */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F056BCD72FA36DA200E50ED4 /* XCRemoteSwiftPackageReference "Sticker" */;
+			productName = Sticker;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = F056BCBF2FA36CE900E50ED4 /* Project object */;
 }

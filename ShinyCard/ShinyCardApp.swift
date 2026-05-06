@@ -1,10 +1,3 @@
-//
-//  ShinyCardApp.swift
-//  ShinyCard
-//
-//  Created by Lawrence Reynolds on 30/04/2026.
-//
-
 import SwiftUI
 
 @main
