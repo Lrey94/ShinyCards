@@ -73,6 +73,11 @@ class Card {
     // Smoothed gyro state
     private var smoothPitch: Float = 0
     private var smoothRoll: Float = 0
+    // Attitude captured on the first gyro sample — establishes the neutral
+    // (zero-tilt) pose. Whatever angle the user is holding the phone at when
+    // the app launches becomes "facing them squarely".
+    private var calibrationPitch: Float?
+    private var calibrationRoll: Float?
 
     // Idle "floating" animation — ticks only while idle.
     private var idleTime: Float = 0
@@ -109,17 +114,37 @@ class Card {
     /// Update ambient tilt from device attitude (radians).
     /// Pitch is roughly forward/back tilt, roll is left/right.
     func updateTilt(pitch: Float, roll: Float) {
-        let alpha: Float = 0.2              // smoothing factor
-        smoothPitch += (pitch - smoothPitch) * alpha
-        smoothRoll  += (roll  - smoothRoll)  * alpha
+        // First sample becomes the rest orientation. All subsequent readings
+        // are deltas from this baseline, so the card starts square-on no
+        // matter how the user is holding the phone.
+        if calibrationPitch == nil {
+            calibrationPitch = pitch
+            calibrationRoll = roll
+        }
+        let dPitch = pitch - (calibrationPitch ?? 0)
+        let dRoll  = roll  - (calibrationRoll  ?? 0)
 
-        let amplitude: Float = 0.4         // radians of max tilt
-        let p = max(-1, min(1, smoothPitch * 1.4)) * amplitude
-        let r = max(-1, min(1, smoothRoll  * 1.4)) * amplitude
+        let alpha: Float = 0.18             // smoothing factor
+        smoothPitch += (dPitch - smoothPitch) * alpha
+        smoothRoll  += (dRoll  - smoothRoll)  * alpha
+
+        let amplitude: Float = 0.22         // radians of max tilt
+        let p = max(-1, min(1, smoothPitch * 1.6)) * amplitude
+        let r = max(-1, min(1, smoothRoll  * 1.6)) * amplitude
 
         let qy = simd_quatf(angle: r, axis: [0,1,0])
         let qx = simd_quatf(angle: -p, axis: [1,0,0])
         tiltOffset = simd_normalize(qy * qx)
+    }
+
+    /// Force a recalibration on the next gyro sample. Useful if you ever add
+    /// a "level the card" gesture.
+    func recalibrateTilt() {
+        calibrationPitch = nil
+        calibrationRoll = nil
+        tiltOffset = simd_quatf(angle: 0, axis: [0, 1, 0])
+        smoothPitch = 0
+        smoothRoll = 0
     }
 
     func reset() {
