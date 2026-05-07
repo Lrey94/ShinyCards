@@ -42,6 +42,7 @@ struct ContentView: View {
     @State private var selectedCollection: CardCollection = .baseSet
     @State private var selectedCard: Int = 1
     @State private var isLoading = false
+    @State private var showAR = false
 
     var body: some View {
         ZStack {
@@ -90,13 +91,12 @@ struct ContentView: View {
                 }
                 .padding(.bottom, 12)
 
-                HStack(spacing: 16) {
+                HStack(spacing: 12) {
                     Button {
                         holoEnabled.toggle()
                     } label: {
                         Label(holoEnabled ? "Holo: On" : "Holo: Off",
                               systemImage: holoEnabled ? "sparkles" : "sparkle")
-                            .frame(minWidth: 110)
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(holoEnabled ? .pink : .gray)
@@ -105,15 +105,90 @@ struct ContentView: View {
                         resetTrigger &+= 1
                     } label: {
                         Label("Reset", systemImage: "arrow.counterclockwise")
-                            .frame(minWidth: 90)
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.blue)
+
+                    Button {
+                        showAR = true
+                    } label: {
+                        Label("AR", systemImage: "arkit")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.green)
                 }
                 .font(.headline)
                 .padding(.bottom, 30)
             }
         }
+        .fullScreenCover(isPresented: $showAR) {
+            ARCardModeView(
+                holoEnabled: $holoEnabled,
+                cardURL: selectedCollection.imageURL(for: selectedCard),
+                cardCacheKey: selectedCollection.cacheKey(for: selectedCard)
+            )
+        }
+    }
+}
+
+// MARK: - AR mode wrapper
+
+private struct ARCardModeView: View {
+    @Binding var holoEnabled: Bool
+    let cardURL: URL?
+    let cardCacheKey: String
+    @Environment(\.dismiss) private var dismiss
+    @State private var hasPlaced = false
+
+    var body: some View {
+        ZStack {
+            ARCardView(
+                holoEnabled: $holoEnabled,
+                cardURL: cardURL,
+                cardCacheKey: cardCacheKey
+            )
+            .ignoresSafeArea()
+            .onTapGesture { hasPlaced = true } // first tap dismisses the hint
+
+            VStack {
+                HStack {
+                    Spacer()
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 32))
+                            .foregroundStyle(.white, .black.opacity(0.5))
+                            .padding()
+                    }
+                }
+                Spacer()
+
+                if !hasPlaced {
+                    Label("Tap a flat surface to place the card",
+                          systemImage: "hand.tap.fill")
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(.ultraThinMaterial, in: Capsule())
+                        .foregroundStyle(.white)
+                        .padding(.bottom, 30)
+                        .transition(.opacity)
+                }
+
+                HStack {
+                    Button {
+                        holoEnabled.toggle()
+                    } label: {
+                        Label(holoEnabled ? "Holo: On" : "Holo: Off",
+                              systemImage: holoEnabled ? "sparkles" : "sparkle")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(holoEnabled ? .pink : .gray)
+                }
+                .padding(.bottom, 30)
+            }
+        }
+        .preferredColorScheme(.dark)
     }
 }
 

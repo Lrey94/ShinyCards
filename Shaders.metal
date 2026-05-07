@@ -130,32 +130,39 @@ fragment float4 fragment_main(VertexOut in [[stage_in]],
     // Front face — base art, optionally with holographic foil overlay, plus
     // the gold rim on top.
     float4 base = frontTex.sample(s, in.uv);
-    if (u.holoEnabled < 0.5) {
+    // `holoEnabled` doubles as a continuous intensity scalar (used by AR mode
+    // to feed in ARLightEstimate). 0 = off, 1 = baseline, >1 = brighter.
+    if (u.holoEnabled < 0.05) {
         float3 lit = mix(base.rgb, goldRim, saturate(rimMask));
         return float4(lit, base.a);
     }
+    float intensity = u.holoEnabled;
 
-    // Rainbow band shifts with view angle, uv, and time.
+    // Rainbow band shifts with view angle, uv, and time. Saturation kicked
+    // up via gamma (<1 → punchier hues) and brightness multiplied so the
+    // colors actually pop rather than reading as pastel.
     float rainbowU = fract(in.uv.x * 1.4 + in.uv.y * 0.6
                            + fres * 1.2 + u.time * 0.08);
     float3 rainbow = rainbowTex.sample(s, float2(rainbowU, 0.5)).rgb;
+    rainbow = pow(rainbow, float3(0.78)) * 1.15;
 
     // Glittery sparkle that scrolls with view — pow() to keep only bright
     // pixels. Sparkle only appears off-axis (multiplied by fres²) so a
     // square-on card has almost none.
     float2 noiseUV = in.uv * 8.0 + V.xy * 0.6;
     float sparkle  = noiseTex.sample(s, noiseUV).r;
-    sparkle = pow(sparkle, 8.0) * fres * fres * 1.4;
+    sparkle = pow(sparkle, 8.0) * fres * fres * 1.4 * intensity;
 
     // Specular highlight — a moving "sheen" you can chase by tilting.
     float3 L = normalize(float3(0.3, 0.7, 0.7));
     float3 H = normalize(L + V);
-    float spec = pow(max(dot(N, H), 0.0), 28.0) * 0.55;
+    float spec = pow(max(dot(N, H), 0.0), 28.0) * 0.55 * intensity;
 
-    // Blend rainbow over the base; near zero at square-on, ramps up at
-    // grazing angles. No constant base term so the card looks normal at rest.
-    float holoStrength = fres * fres * 0.75;
-    float3 lit = mix(base.rgb, base.rgb * 0.7 + rainbow * 0.7, holoStrength);
+    // Blend rainbow over the base. The new mix formula keeps more of the
+    // base (0.55) while pushing the rainbow term harder (1.20) so the
+    // chromatic shift is unmistakable at angle.
+    float holoStrength = fres * fres * 0.85 * intensity;
+    float3 lit = mix(base.rgb, base.rgb * 0.55 + rainbow * 1.20, holoStrength);
     lit += sparkle;
     lit += spec;
 
@@ -164,6 +171,48 @@ fragment float4 fragment_main(VertexOut in [[stage_in]],
 
     return float4(lit, base.a);
 #endif
+}
+
+// MARK: - AR camera background
+//
+// ARKit's `currentFrame.capturedImage` is a biplanar YCbCr CVPixelBuffer.
+// We render it as a fullscreen quad and convert to RGB in the fragment
+// shader. The display transform (passed as a 3×3 matrix) rotates UVs so
+// the camera image lines up with the device's current orientation.
+
+struct CameraOut {
+    float4 position [[position]];
+    float2 uv;
+};
+
+vertex CameraOut camera_vertex(uint vid [[vertex_id]],
+                                constant float3x3& displayToCamera [[buffer(0)]]) {
+    float2 pos[4] = { float2(-1, -1), float2( 1, -1), float2(-1,  1), float2( 1,  1) };
+    float2 uv[4]  = { float2( 0,  1), float2( 1,  1), float2( 0,  0), float2( 1,  0) };
+    CameraOut out;
+    // z = 1 so the background sits on the far plane and any subsequent draw
+    // (the card) wins the depth test.
+    out.position = float4(pos[vid], 1.0, 1.0);
+    float3 t = displayToCamera * float3(uv[vid], 1);
+    out.uv = t.xy;
+    return out;
+}
+
+fragment float4 camera_fragment(CameraOut in [[stage_in]],
+                                 texture2d<float> yTex    [[texture(0)]],
+                                 texture2d<float> cbcrTex [[texture(1)]],
+                                 sampler s [[sampler(0)]]) {
+    // Standard BT.601 full-range YCbCr → RGB.
+    const float4x4 ycbcrToRGBTransform = float4x4(
+        float4( 1.0000,  1.0000,  1.0000,  0.0000),
+        float4( 0.0000, -0.3441,  1.7720,  0.0000),
+        float4( 1.4020, -0.7141,  0.0000,  0.0000),
+        float4(-0.7010,  0.5291, -0.8860,  1.0000)
+    );
+    float  y    = yTex.sample(s, in.uv).r;
+    float2 cbcr = cbcrTex.sample(s, in.uv).rg;
+    float4 ycbcr = float4(y, cbcr.x, cbcr.y, 1.0);
+    return float4((ycbcrToRGBTransform * ycbcr).rgb, 1.0);
 }
 
 // MARK: - Bloom post-processing
